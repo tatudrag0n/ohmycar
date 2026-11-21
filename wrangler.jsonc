@@ -1,12 +1,18 @@
 {
-  // Cloudflare Workers (static assets) 用の設定。
-  // リポジトリ直下の index.html をそのまま配信する。
+  // Cloudflare Workers 用の設定。
+  // index.html を静的配信し、/actions はランキング用 Worker が処理する。
   "name": "ohmycar",
+  "main": "worker.js",
   "compatibility_date": "2025-09-01",
   "workers_dev": true,
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/actions"]
   },
+  "kv_namespaces": [
+    { "binding": "SCORES", "id": "9fd2634f1a5c4d73a3d9de06baa904d3" }
+  ],
   "routes": [
     { "pattern": "ohmycar.mct-official.com", "custom_domain": true }
   ]

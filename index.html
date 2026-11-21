@@ -205,6 +205,22 @@ h1 .dash::after{content:"";position:absolute;left:-2%;right:-4%;bottom:2px;heigh
 }
 .best-chip svg{width:20px;height:20px}
 .best-chip b{font-family:Yomogi,cursive;font-weight:400;font-size:19px;color:var(--red)}
+.rank-panel{border:2.5px solid var(--ink);border-radius:var(--sketch-r);background:var(--paper);padding:10px 14px;margin:0 auto 12px;max-width:430px}
+.rank-panel h3{font-family:Yomogi,cursive;font-weight:400;font-size:19px;text-align:center;margin-bottom:6px}
+.rank-name-row{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:900;color:var(--ink-soft);margin-bottom:6px;flex-wrap:wrap}
+.rank-name-row b{color:var(--ink);font-size:13px}
+.rank-name-row button{font-family:inherit;border:2px solid var(--ink);border-radius:9px;background:var(--paper2);font-weight:900;font-size:11px;padding:2px 10px;cursor:pointer}
+#rankList{list-style:none;margin:0;padding:0}
+#rankList li{display:flex;gap:8px;align-items:baseline;font-size:13px;font-weight:700;padding:2.5px 2px;border-bottom:1.5px dashed rgba(107,93,77,.35)}
+#rankList li:last-child{border-bottom:none}
+#rankList .rk-pos{width:28px;text-align:right;color:var(--ink-soft);flex-shrink:0}
+#rankList .rk-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+#rankList .rk-dist{font-family:Yomogi,cursive;font-size:15px}
+#rankList li.me .rk-name{color:var(--red)}
+.rank-empty{text-align:center;font-size:12px;font-weight:700;color:var(--ink-soft);padding:4px 0}
+#rRankBox{margin-top:10px;text-align:center;font-size:13px;font-weight:900;line-height:1.7}
+#rRankBox .rk-form{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+#rRankBox input{font-family:inherit;font-weight:700;font-size:14px;border:2.5px solid var(--ink);border-radius:10px;padding:6px 10px;width:160px;background:#fff;color:var(--ink)}
 .chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
 .chip{
   border:2.5px solid var(--ink);border-radius:12px 16px 13px 17px/16px 12px 17px 13px;
@@ -416,6 +432,12 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
       自己ベスト <b id="bestVal">—</b>
     </div>
 
+    <div class="rank-panel">
+      <h3>🏆 ランキング</h3>
+      <div class="rank-name-row">ランキング名：<b id="rkNameDisp">未設定</b><button id="rkNameBtn" type="button">変更</button></div>
+      <ol id="rankList"><li class="rank-empty" style="border:none">読み込み中…</li></ol>
+    </div>
+
     <div class="chips" role="radiogroup" aria-label="難易度">
       <button class="chip" data-diff="easy" role="radio">のんびり</button>
       <button class="chip sel" data-diff="normal" role="radio">ふつう</button>
@@ -552,6 +574,7 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
       <div class="stat bad"><div class="k">クラッシュ</div><div class="v"><span id="rCrash">0</span><small> 回</small></div></div>
     </div>
     <p id="rBestLine">自己ベスト <b>0 m</b></p>
+    <div id="rRankBox"></div>
     <div class="btnrow">
       <button id="againBtn" class="btn primary big">🔥 もう一度！</button>
       <div class="row2">
@@ -598,7 +621,7 @@ const bestKey=()=>"rk_best_"+diffKey;
 let best=LS.get(bestKey(),0);
 
 /* ================= freeform tire model ================= */
-const TN=160;
+const TN=48;
 function polyArea(pts){
   let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length];a+=p[0]*q[1]-q[0]*p[1];}
   return a*0.5;
@@ -615,6 +638,51 @@ function polyCentroid(pts){
     return[sx/pts.length,sy/pts.length];
   }
   return[cx/(6*a),cy/(6*a)];
+}
+function minEnclosingCircle(pts){
+  // フライングディスクと同じ方式: 最小外接円の中心をタイヤの中心（軸）にする
+  const inside=(p,c)=>Math.hypot(p[0]-c[0],p[1]-c[1])<=c[2]+1e-9;
+  const from2=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2,Math.hypot(a[0]-b[0],a[1]-b[1])/2];
+  const from3=(a,b,c)=>{
+    const d=2*(a[0]*(b[1]-c[1])+b[0]*(c[1]-a[1])+c[0]*(a[1]-b[1]));
+    if(Math.abs(d)<1e-12){
+      let best=from2(a,b);
+      const pairs=[[a,b],[b,c],[a,c]];
+      for(let i=0;i<3;i++){const cc=from2(pairs[i][0],pairs[i][1]);if(cc[2]>best[2])best=cc;}
+      return best;
+    }
+    const a2=a[0]*a[0]+a[1]*a[1],b2=b[0]*b[0]+b[1]*b[1],c2=c[0]*c[0]+c[1]*c[1];
+    const x=(a2*(b[1]-c[1])+b2*(c[1]-a[1])+c2*(a[1]-b[1]))/d;
+    const y=(a2*(c[0]-b[0])+b2*(a[0]-c[0])+c2*(b[0]-a[0]))/d;
+    return [x,y,Math.hypot(a[0]-x,a[1]-y)];
+  };
+  let c=[pts[0][0],pts[0][1],0];
+  for(let i=1;i<pts.length;i++){
+    if(inside(pts[i],c))continue;
+    c=[pts[i][0],pts[i][1],0];
+    for(let j=0;j<i;j++){
+      if(inside(pts[j],c))continue;
+      c=from2(pts[i],pts[j]);
+      for(let k=0;k<j;k++){
+        if(!inside(pts[k],c))c=from3(pts[i],pts[j],pts[k]);
+      }
+    }
+  }
+  return c;
+}
+function traceSmoothClosed(g,sp){
+  // フライングディスクと同じ方式: Catmull-Rom -> bezier の閉じたなめらか曲線
+  const n=sp.length;if(n<3)return;
+  const P=i=>sp[(i%n+n)%n];
+  g.beginPath();g.moveTo(P(0)[0],P(0)[1]);
+  for(let i=0;i<n;i++){
+    const p0=P(i-1),p1=P(i),p2=P(i+1),p3=P(i+2);
+    g.bezierCurveTo(
+      p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6,
+      p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6,
+      p2[0],p2[1]);
+  }
+  g.closePath();
 }
 function resampleClosed(src,n){
   const m=src.length;if(m<2)return null;
@@ -665,24 +733,26 @@ function computeMeta(pts){
   return{meanR:mean,stdR:sd,circ,supVar,corners:Math.min(corners,30),valveIdx:vi,valveAng0:Math.atan2(pts[vi][1],pts[vi][0])*180/Math.PI};
 }
 function buildShape(raw,smooth){
-  if(!raw||raw.length<6)return null;
+  if(!raw||raw.length<8)return null;
   const pts=[];let lx=1e9,ly=1e9;
   for(let i=0;i<raw.length;i++){const p=raw[i];if(!isFinite(p[0])||!isFinite(p[1]))continue;
     if(Math.hypot(p[0]-lx,p[1]-ly)>1.1){pts.push([p[0],p[1]]);lx=p[0];ly=p[1];}}
-  if(pts.length<6)return null;
+  if(pts.length<8)return null;
+  let pathLen=0;for(let i=1;i<pts.length;i++)pathLen+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+  if(pathLen<60)return null;
   let bx0=1e9,by0=1e9,bx1=-1e9,by1=-1e9;
   pts.forEach(p=>{bx0=Math.min(bx0,p[0]);by0=Math.min(by0,p[1]);bx1=Math.max(bx1,p[0]);by1=Math.max(by1,p[1]);});
   if(Math.hypot(bx1-bx0,by1-by0)<16)return null;
-  const c=polyCentroid(pts);
-  let maxR=0;pts.forEach(p=>{maxR=Math.max(maxR,Math.hypot(p[0]-c[0],p[1]-c[1]));});
+  const mec=minEnclosingCircle(pts);const c=[mec[0],mec[1]];
+  let maxR=mec[2];
   if(maxR<8)return null;
   let unit=pts.map(p=>[(p[0]-c[0])/maxR,(p[1]-c[1])/maxR]);
   unit=resampleClosed(unit,TN);if(!unit)return null;
   const it=Math.round(clamp(smooth,0,0.6)*8);
   for(let k=0;k<it;k++)unit=smoothClosed(unit,0.35);
-  const c2=polyCentroid(unit);
+  const mec2=minEnclosingCircle(unit);const c2=[mec2[0],mec2[1]];
   unit=unit.map(p=>[p[0]-c2[0],p[1]-c2[1]]);
-  let mr=0;unit.forEach(p=>{mr=Math.max(mr,Math.hypot(p[0],p[1]));});
+  let mr=mec2[2];
   if(mr<1e-6)return null;
   unit=unit.map(p=>[p[0]/mr,p[1]/mr]);
   const meta=computeMeta(unit);
@@ -714,10 +784,13 @@ const shapeRot=()=>needleDeg-tire.meta.valveAng0;
 const grade=v=>v>=0.8?"S":v>=0.6?"A":v>=0.4?"B":"C";
 function tireSVG(shape,s,size){
   const c=30,r=24;let d="";
-  const a0=0,ca=Math.cos(a0),sa=Math.sin(a0);
-  for(let i=0;i<=shape.pts.length;i++){const p=shape.pts[i%shape.pts.length];
-    const x=c+(p[0]*ca-p[1]*sa)*r,y=c+(p[0]*sa+p[1]*ca)*r;
-    d+=(i===0?"M":"L")+x.toFixed(1)+" "+y.toFixed(1);}
+  const sp=shape.pts.map(p=>[c+p[0]*r,c+p[1]*r]);
+  const nn=sp.length,PP=i=>sp[(i%nn+nn)%nn];
+  d="M"+PP(0)[0].toFixed(1)+" "+PP(0)[1].toFixed(1);
+  for(let i=0;i<nn;i++){const p0=PP(i-1),p1=PP(i),p2=PP(i+1),p3=PP(i+2);
+    d+="C"+(p1[0]+(p2[0]-p0[0])/6).toFixed(1)+" "+(p1[1]+(p2[1]-p0[1])/6).toFixed(1)+" "+
+      (p2[0]-(p3[0]-p1[0])/6).toFixed(1)+" "+(p2[1]-(p3[1]-p1[1])/6).toFixed(1)+" "+
+      p2[0].toFixed(1)+" "+p2[1].toFixed(1);}
   d+="Z";
   const va=rad(shape.meta.valveAng0),vr=r*0.94;
   return '<svg class="tire" viewBox="0 0 60 60" width="'+size+'" height="'+size+'">'+
@@ -797,12 +870,8 @@ function fillStroke(fill,stroke,lw){
 }
 function freePath(cx,cy,R,shape,rotDeg,seed){
   const a=rad(rotDeg),c=Math.cos(a),s=Math.sin(a),pts=shape.pts;
-  ctx.beginPath();
-  for(let i=0;i<=pts.length;i++){const p=pts[i%pts.length];
-    const x=cx+(p[0]*c-p[1]*s)*R+jit(seed+i*3,0.8);
-    const y=cy+(p[0]*s+p[1]*c)*R+jit(seed+i*3+7,0.8);
-    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
-  ctx.closePath();
+  const sp=pts.map((p,i)=>[cx+(p[0]*c-p[1]*s)*R+jit(seed+i*3,0.8),cy+(p[0]*s+p[1]*c)*R+jit(seed+i*3+7,0.8)]);
+  traceSmoothClosed(ctx,sp);
 }
 
 /* ================= audio ================= */
@@ -1028,6 +1097,7 @@ function goTitle(){
   best=LS.get(bestKey(),0);
   $("bestVal").textContent=best>0?fmt(best)+" m":"—";
   updateTitleTire();
+  rkLoad();
   setOverlay("title");
 }
 function doPause(){
@@ -1073,6 +1143,7 @@ function finishRun(){
   $("rDodged").textContent=stats.dodged;
   $("rCrash").textContent=stats.crashes;
   $("rBestLine").innerHTML="自己ベスト <b>"+fmt(best)+" m</b>"+(isRecord?"（+"+fmt(d-bestAtStart)+" m 更新！）":firstRec?"（はじめの記録！）":"");
+  rkOnFinish(d,md.k);
   hud.classList.add("hidden");hud.setAttribute("aria-hidden","true");
   setOverlay("results");
   if(isRecord||firstRec){spawnConfetti(carScr.x,carScr.y-120,90);SFX.record();}
@@ -1749,7 +1820,7 @@ tireCv.addEventListener("pointermove",ev=>{
   if(!drawing||!ev.isPrimary)return;
   ev.preventDefault();
   const p=edPoint(ev),last=edRaw[edRaw.length-1];
-  if(!last||Math.hypot(p[0]-last[0],p[1]-last[1])>1.6){
+  if(!last||Math.hypot(p[0]-last[0],p[1]-last[1])>2.5){
     edRaw.push(p);if(edRaw.length>1400)edRaw.shift();
     edDirty=true;
     if(t-pencilT>0.08){pencilT=t;SFX.pencil();}
@@ -1793,11 +1864,7 @@ function renderEditor(){
     const m=editShape.meta;
     ectx.setLineDash([5,6]);ectx.strokeStyle="rgba(139,147,168,0.5)";ectx.lineWidth=1.4;
     ectx.beginPath();ectx.arc(m.cx,m.cy,m.scale,0,7);ectx.stroke();ectx.setLineDash([]);
-    ectx.beginPath();
-    for(let i=0;i<=editShape.pts.length;i++){const p=editShape.pts[i%editShape.pts.length];
-      const x=m.cx+p[0]*m.scale,y=m.cy+p[1]*m.scale;
-      i===0?ectx.moveTo(x,y):ectx.lineTo(x,y);}
-    ectx.closePath();
+    traceSmoothClosed(ectx,editShape.pts.map(p=>[m.cx+p[0]*m.scale,m.cy+p[1]*m.scale]));
     ectx.fillStyle="rgba(51,41,31,0.9)";ectx.fill();
     ectx.strokeStyle=C.ink;ectx.lineWidth=3;ectx.stroke();
     ectx.beginPath();ectx.arc(m.cx,m.cy,Math.max(7,m.scale*0.13),0,7);
@@ -1813,16 +1880,24 @@ function renderEditor(){
     ectx.strokeStyle=C.paper2;ectx.lineWidth=4;ectx.strokeText("中心（自動）",m.cx+13,m.cy-10);
     ectx.fillStyle=C.blue;ectx.fillText("中心（自動）",m.cx+13,m.cy-10);
   }
-  if(edRaw.length>1){
-    if(drawing){
-      ectx.setLineDash([4,5]);ectx.strokeStyle="rgba(224,72,154,0.6)";ectx.lineWidth=2;
-      ectx.beginPath();ectx.moveTo(edRaw[edRaw.length-1][0],edRaw[edRaw.length-1][1]);ectx.lineTo(edRaw[0][0],edRaw[0][1]);ectx.stroke();
-      ectx.setLineDash([]);
-    }
-    ectx.strokeStyle="rgba(224,72,154,0.5)";ectx.lineWidth=2.4;
-    ectx.beginPath();ectx.moveTo(edRaw[0][0],edRaw[0][1]);
-    for(let i=1;i<edRaw.length;i++)ectx.lineTo(edRaw[i][0],edRaw[i][1]);
-    ectx.stroke();
+  if(drawing&&edRaw.length>1){
+    ectx.setLineDash([4,5]);ectx.strokeStyle="rgba(224,72,154,0.6)";ectx.lineWidth=2;
+    ectx.beginPath();ectx.moveTo(edRaw[edRaw.length-1][0],edRaw[edRaw.length-1][1]);ectx.lineTo(edRaw[0][0],edRaw[0][1]);ectx.stroke();
+    ectx.setLineDash([]);
+    // フライングディスクと同じ描き方: 中点を通る quadratic 曲線で、
+    // 太いピンクの線＋白い芯線の2層ストローク
+    const livePath=()=>{ectx.beginPath();ectx.moveTo(edRaw[0][0],edRaw[0][1]);
+      for(let i=1;i<edRaw.length-1;i++){const mx=(edRaw[i][0]+edRaw[i+1][0])/2,my=(edRaw[i][1]+edRaw[i+1][1])/2;ectx.quadraticCurveTo(edRaw[i][0],edRaw[i][1],mx,my);}
+      ectx.lineTo(edRaw[edRaw.length-1][0],edRaw[edRaw.length-1][1]);};
+    ectx.save();
+    ectx.strokeStyle=C.magenta;ectx.lineWidth=11;ectx.lineCap="round";ectx.lineJoin="round";
+    ectx.shadowColor="rgba(224,72,154,0.45)";ectx.shadowBlur=8;
+    livePath();ectx.stroke();
+    ectx.restore();
+    ectx.save();
+    ectx.strokeStyle="rgba(255,255,255,0.92)";ectx.lineWidth=2;ectx.lineCap="round";ectx.lineJoin="round";
+    livePath();ectx.stroke();
+    ectx.restore();
   }
   if(!editShape&&!drawing){
     ectx.globalAlpha=0.6+Math.sin(t*3)*0.2;
@@ -1854,12 +1929,9 @@ function renderEditor(){
     pctx.beginPath();pctx.ellipse(cx,gy+2,50,4,0,0,7);pctx.fill();
     [-24,24].forEach((dx,k)=>{
       const wx=cx+dx,wy=gy-sup;
-      pctx.beginPath();
       const a=rad(roll),ca=Math.cos(a),sa=Math.sin(a);
-      for(let i=0;i<=editShape.pts.length;i++){const p=editShape.pts[i%editShape.pts.length];
-        const x=wx+(p[0]*ca-p[1]*sa)*wr,y=wy+(p[0]*sa+p[1]*ca)*wr;
-        i===0?pctx.moveTo(x,y):pctx.lineTo(x,y);}
-      pctx.closePath();pctx.fillStyle=C.ink;pctx.fill();
+      traceSmoothClosed(pctx,editShape.pts.map(p=>[wx+(p[0]*ca-p[1]*sa)*wr,wy+(p[0]*sa+p[1]*ca)*wr]));
+      pctx.fillStyle=C.ink;pctx.fill();
       pctx.beginPath();pctx.arc(wx,wy,wr*0.26,0,7);pctx.fillStyle=C.paper2;pctx.fill();pctx.strokeStyle=C.ink;pctx.lineWidth=1.8;pctx.stroke();
       const va=rad(roll+editShape.meta.valveAng0),vrr=wr*0.9;
       pctx.beginPath();pctx.arc(wx+Math.cos(va)*vrr,wy+Math.sin(va)*vrr,2.6,0,7);pctx.fillStyle=C.yellow;pctx.fill();
@@ -1914,6 +1986,7 @@ jumpBtn.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation(
 
 /* ================= UI wiring ================= */
 $("goBtn").addEventListener("click",()=>{initAudio();resumeAudio();SFX.click();startRun();});
+$("rkNameBtn").addEventListener("click",()=>{const n=prompt("ランキングに表示される名前（12文字まで）",rkName||"");if(n!==null){if(rkSetName(n))showToast("名前を「"+rkName+"」にしたよ");else showToast("名前を入れてね");}});
 $("againBtn").addEventListener("click",()=>{initAudio();resumeAudio();SFX.click();startRun();});
 $("retryBtn").addEventListener("click",()=>{SFX.click();startRun();});
 $("resumeBtn").addEventListener("click",doResume);
@@ -1956,6 +2029,68 @@ function fallbackCopy(txt,done){
   document.body.appendChild(ta);ta.select();
   try{document.execCommand("copy");done();}catch(e){showToast("コピーできませんでした…");}
   ta.remove();
+}
+
+/* ================= ranking (フライングディスクと同じ records API 方式) ================= */
+const RK_COLL="rakugaki_dash_distance_scores";
+let rkName=LS.get("rk_name","");
+let rkRecords=null;
+let rkPending=null;
+function rkEsc(t){return String(t).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+async function rkFetch(action,args){
+  const r=await fetch("actions",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action,args:Object.assign({collection:RK_COLL},args||{})})});
+  if(!r.ok)throw new Error("rk "+r.status);
+  return r.json();
+}
+async function rkLoad(){
+  try{
+    const j=await rkFetch("records.list");
+    rkRecords=((j.data&&j.data.records)||[]).map(r=>r.value).filter(v=>v&&typeof v.best==="number"&&typeof v.name==="string").sort((a,b)=>b.best-a.best);
+  }catch(e){rkRecords=null;}
+  rkRenderTitle();
+}
+function rkRenderTitle(){
+  const nEl=$("rkNameDisp");if(nEl)nEl.textContent=rkName||"未設定";
+  const ol=$("rankList");if(!ol)return;
+  if(rkRecords===null){ol.innerHTML='<li class="rank-empty" style="border:none">読み込み中…</li>';return;}
+  if(!rkRecords.length){ol.innerHTML='<li class="rank-empty" style="border:none">まだ記録がありません。最初の記録を残そう！</li>';return;}
+  ol.innerHTML=rkRecords.slice(0,10).map((v,i)=>{
+    const pos=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1)+"位";
+    return '<li'+(rkName&&v.name===rkName?' class="me"':"")+'><span class="rk-pos">'+pos+'</span><span class="rk-name">'+rkEsc(v.name)+'</span><span class="rk-dist">'+fmt(v.best)+' m</span></li>';
+  }).join("");
+}
+function rkSetName(n){
+  n=String(n||"").replace(/[<>&"'`\\]/g,"").replace(/\s+/g," ").trim().slice(0,12);
+  if(!n)return false;
+  rkName=n;LS.set("rk_name",n);rkRenderTitle();return true;
+}
+async function rkSubmit(d,rankChar){
+  try{
+    await rkFetch("records.create",{value:{name:rkName,best:d,total:d,rank:rankChar,diff:diffKey,playedAt:new Date().toISOString()}});
+    await rkLoad();
+    if(!rkRecords)rkRecords=[];
+    if(!rkRecords.some(v=>v.name===rkName)){rkRecords.push({name:rkName,best:d,total:d,rank:rankChar});rkRecords.sort((a,b)=>b.best-a.best);rkRenderTitle();}
+    const idx=rkRecords.findIndex(v=>v.name===rkName);return idx>=0?idx+1:0;
+  }catch(e){}
+  return 0;
+}
+async function rkOnFinish(d,rankChar){
+  const box=$("rRankBox");if(!box)return;
+  if(!rkName){
+    rkPending={d,rankChar};
+    box.innerHTML='<div>🏆 ランキングに登録しよう！</div><div class="rk-form"><input id="rkNameInput" maxlength="12" placeholder="名前（12文字まで）"><button id="rkRegBtn" class="btn blue small" type="button">登録する</button></div>';
+    $("rkRegBtn").addEventListener("click",async()=>{
+      if(!rkSetName($("rkNameInput").value)){showToast("名前を入れてね");return;}
+      const pd=rkPending;rkPending=null;
+      box.innerHTML="🏆 ランキングに登録中…";
+      const pos=await rkSubmit(pd.d,pd.rankChar);
+      box.innerHTML=pos?("🏆 ランキング <b>"+pos+"位</b> / "+rkRecords.length+"人中"):"ランキングに接続できませんでした…";
+    });
+    return;
+  }
+  box.innerHTML="🏆 ランキングに登録中…";
+  const pos=await rkSubmit(d,rankChar);
+  box.innerHTML=pos?("🏆 ランキング <b>"+pos+"位</b> / "+rkRecords.length+"人中（"+rkEsc(rkName)+"）"):"ランキングに接続できませんでした…";
 }
 
 /* ================= boot ================= */
