@@ -1880,35 +1880,34 @@ function renderEditor(){
     ectx.strokeStyle=C.paper2;ectx.lineWidth=4;ectx.strokeText("中心（自動）",m.cx+13,m.cy-10);
     ectx.fillStyle=C.blue;ectx.fillText("中心（自動）",m.cx+13,m.cy-10);
   }
-  if(edRaw.length>2&&(drawing||!editShape)){
-    // 描いた線の内側を塗りつぶす（描いている途中〜描き終わったあとも表示）
-    const livePath=(close)=>{
-      ectx.beginPath();ectx.moveTo(edRaw[0][0],edRaw[0][1]);
+  if(drawing&&edRaw.length>1){
+    // 描いている途中は塗りつぶさない（線だけ）
+    ectx.setLineDash([4,5]);ectx.strokeStyle="rgba(224,72,154,0.6)";ectx.lineWidth=2;
+    ectx.beginPath();ectx.moveTo(edRaw[edRaw.length-1][0],edRaw[edRaw.length-1][1]);ectx.lineTo(edRaw[0][0],edRaw[0][1]);ectx.stroke();
+    ectx.setLineDash([]);
+    // フライングディスクと同じ描き方: 中点を通る quadratic 曲線で、
+    // 太いピンクの線＋白い芯線の2層ストローク
+    const livePath=()=>{ectx.beginPath();ectx.moveTo(edRaw[0][0],edRaw[0][1]);
       for(let i=1;i<edRaw.length-1;i++){const mx=(edRaw[i][0]+edRaw[i+1][0])/2,my=(edRaw[i][1]+edRaw[i+1][1])/2;ectx.quadraticCurveTo(edRaw[i][0],edRaw[i][1],mx,my);}
-      ectx.lineTo(edRaw[edRaw.length-1][0],edRaw[edRaw.length-1][1]);
-      if(close)ectx.closePath();
-    };
-    livePath(true);
+      ectx.lineTo(edRaw[edRaw.length-1][0],edRaw[edRaw.length-1][1]);};
+    ectx.save();
+    ectx.strokeStyle=C.magenta;ectx.lineWidth=11;ectx.lineCap="round";ectx.lineJoin="round";
+    ectx.shadowColor="rgba(224,72,154,0.45)";ectx.shadowBlur=8;
+    livePath();ectx.stroke();
+    ectx.restore();
+    ectx.save();
+    ectx.strokeStyle="rgba(255,255,255,0.92)";ectx.lineWidth=2;ectx.lineCap="round";ectx.lineJoin="round";
+    livePath();ectx.stroke();
+    ectx.restore();
+  }
+  if(!drawing&&!editShape&&edRaw.length>2){
+    // 描き終わったあとは、線の内側を塗りつぶして残す
+    ectx.beginPath();ectx.moveTo(edRaw[0][0],edRaw[0][1]);
+    for(let i=1;i<edRaw.length-1;i++){const mx=(edRaw[i][0]+edRaw[i+1][0])/2,my=(edRaw[i][1]+edRaw[i+1][1])/2;ectx.quadraticCurveTo(edRaw[i][0],edRaw[i][1],mx,my);}
+    ectx.lineTo(edRaw[edRaw.length-1][0],edRaw[edRaw.length-1][1]);
+    ectx.closePath();
     ectx.fillStyle="rgba(224,72,154,0.20)";ectx.fill();
-    if(drawing){
-      ectx.setLineDash([4,5]);ectx.strokeStyle="rgba(224,72,154,0.6)";ectx.lineWidth=2;
-      ectx.beginPath();ectx.moveTo(edRaw[edRaw.length-1][0],edRaw[edRaw.length-1][1]);ectx.lineTo(edRaw[0][0],edRaw[0][1]);ectx.stroke();
-      ectx.setLineDash([]);
-      // フライングディスクと同じ描き方: 中点を通る quadratic 曲線で、
-      // 太いピンクの線＋白い芯線の2層ストローク
-      ectx.save();
-      ectx.strokeStyle=C.magenta;ectx.lineWidth=11;ectx.lineCap="round";ectx.lineJoin="round";
-      ectx.shadowColor="rgba(224,72,154,0.45)";ectx.shadowBlur=8;
-      livePath(false);ectx.stroke();
-      ectx.restore();
-      ectx.save();
-      ectx.strokeStyle="rgba(255,255,255,0.92)";ectx.lineWidth=2;ectx.lineCap="round";ectx.lineJoin="round";
-      livePath(false);ectx.stroke();
-      ectx.restore();
-    }else{
-      ectx.strokeStyle="rgba(224,72,154,0.55)";ectx.lineWidth=2.4;ectx.lineCap="round";ectx.lineJoin="round";
-      livePath(false);ectx.stroke();
-    }
+    ectx.strokeStyle="rgba(224,72,154,0.55)";ectx.lineWidth=2.4;ectx.lineCap="round";ectx.lineJoin="round";ectx.stroke();
   }
   if(!editShape&&!drawing){
     ectx.globalAlpha=0.6+Math.sin(t*3)*0.2;
