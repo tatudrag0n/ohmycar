@@ -13,10 +13,29 @@ function json(obj, status) {
   });
 }
 
+const BANNED_NAME_WORDS = [
+  "ちんこ", "ちんぽ", "まんこ", "おっぱい", "セックス", "えろ", "オナニー", "ペニス",
+  "うんこ", "うんち", "くそ",
+  "ばか", "バカ", "馬鹿", "あほ", "アホ", "きちがい", "きもい",
+  "死ね", "しね", "殺す", "ころす", "くたばれ",
+  "運営", "公式", "管理者", "管理人", "運営者", "admin", "staff", "スタッフ",
+  "fuck", "shit", "bitch", "dick", "pussy", "cock", "sex", "porn",
+];
+function normName(t) {
+  return String(t).normalize("NFKC")
+    .replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
+    .toLowerCase().replace(/\s+/g, "");
+}
+function isInappropriateName(t) {
+  const n = normName(t);
+  return !!n && BANNED_NAME_WORDS.some((w) => n.includes(normName(w)));
+}
 function cleanName(v) {
   if (typeof v !== "string") return null;
   const name = v.replace(/[<>&"'`\\]/g, "").replace(/\s+/g, " ").trim().slice(0, 12);
-  return name.length >= 1 ? name : null;
+  if (name.length < 1) return null;
+  if (isInappropriateName(name)) return null;
+  return name;
 }
 
 async function listRecords(env) {
@@ -29,7 +48,7 @@ async function listRecords(env) {
       if (!raw) continue;
       try {
         const value = JSON.parse(raw);
-        if (value && typeof value.best === "number" && typeof value.name === "string") {
+        if (value && typeof value.best === "number" && typeof value.name === "string" && !isInappropriateName(value.name)) {
           out.push({ value });
         }
       } catch (e) { /* skip broken record */ }
