@@ -378,6 +378,7 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
   </div>
   <div class="hud-card dist-card">
     <div><span id="distVal">0</span><span class="unit">m</span></div>
+    <div style="font-size:10px;font-weight:900;color:var(--ink-soft);letter-spacing:.12em">いま：<span id="zoneVal">平地</span></div>
     <div id="ruler">
       <span id="rulerCar">
         <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#33291f"/><circle cx="10" cy="10" r="4.5" fill="#fdf8ec"/><circle cx="10" cy="10" r="1.6" fill="#e5432e"/><circle cx="13" cy="7" r="1.4" fill="#f2b31f"/></svg>
@@ -423,6 +424,7 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
       <div class="tire-info">
         <div class="tname">いまのタイヤ：<em id="tireName">まるタイヤ</em></div>
         <div class="mini-stats" id="miniStats"></div>
+        <div id="traitLine" style="font-size:11px;font-weight:900;color:var(--magenta);margin-top:4px"></div>
       </div>
       <button id="editTireBtn" class="btn blue small">✏️ 描く</button>
     </div>
@@ -432,6 +434,8 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
       自己ベスト <b id="bestVal">—</b>
     </div>
 
+    <button id="moreBtn" class="btn ghost small" style="display:block;margin:0 auto 12px">🏆 ランキング・遊び方 ▾</button>
+    <div id="morePanel" class="hidden">
     <div class="rank-panel">
       <h3>🏆 ランキング</h3>
       <div class="rank-name-row">ランキング名：<b id="rkNameDisp">未設定</b><button id="rkNameBtn" type="button">変更</button></div>
@@ -478,9 +482,11 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
     <p class="rules">
       <b class="p">PERFECT</b>＝大加速＋燃料回復 ／ <b class="g">GOOD</b>＝小加速 ／ <b class="m">MISS</b>＝ブレーキ＆燃料−8<br>
       <b class="j">ジャンプ</b>＝右下ボタン / ↑キー（燃料−3・空中は燃費◎） ／ <b class="b">boost矢印</b>＝加速 ／ 坂＝大ジャンプ<br>
-      コンボ<b class="f">×8でFEVER!</b> ／ 凹凸タイヤは障害物を自動でポンとはねる ／ メダル 銅500m・銀1200m・金2200m
+      コンボ<b class="f">×8でFEVER!</b> ／ 道は650mごとに 平地→ガタガタ→穴ぼこ と変わる<br>
+      <b class="b">トゲ</b>は岩を砕く ／ <b class="g">広い面</b>は穴をわたる ／ <b class="p">まるい形</b>は燃費◎・コーンをスルッ ／ 長い面が地面に着いた瞬間のタップは<b class="p">接地PERFECT</b>で大加速 ／ メダル 銅500m・銀1200m・金2200m
     </p>
 
+    </div>
     <button id="goBtn" class="btn primary big">🚗 はしる！</button>
     <p class="foot">タップ / クリック / スペース＝加速 ｜ ↑ / W＝ジャンプ ｜ P＝ポーズ</p>
   </div>
@@ -490,7 +496,7 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
 <section id="editor" class="overlay hidden" data-ui>
   <div class="card">
     <h2>✏️ <span class="u">タイヤこうぼう</span> <small style="font-size:.5em;color:var(--magenta)">完全自由版</small></h2>
-    <p class="ed-lead">キャンバスの<b>どこでも、好きな形をひと筆</b>でどうぞ。線は自動で閉じて、<b>中心（軸）は形から自動計算</b>。<br>ハートでもバナナでもイビツでもOK。大きさとなめらかさはスライダーで_live_調整。</p>
+    <p class="ed-lead">キャンバスの<b>どこでも、好きな形をひと筆</b>でどうぞ。線は自動で閉じて、<b>中心（軸）は形から自動計算</b>。<br>形そのものが性能になる：まるい＝燃費、トゲ＝岩砕き、広い面＝穴渡り。大きさとなめらかさはスライダーで調整。</p>
     <div class="ed-grid">
       <div class="ed-left">
         <canvas id="tireCv"></canvas>
@@ -518,7 +524,7 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
         <div class="tstat"><div class="k"><span>🏁 さいこう速</span><span class="grade" id="gSpeed">B</span></div><div class="bar"><div class="fill" id="fSpeed" style="background:linear-gradient(90deg,var(--orange),var(--red))"></div></div><div class="hint">ふっくら大きい形ほど最高速アップ</div></div>
         <div class="tstat"><div class="k"><span>⚡ かそく</span><span class="grade" id="gAccel">B</span></div><div class="bar"><div class="fill" id="fAccel" style="background:linear-gradient(90deg,var(--sky),var(--blue))"></div></div><div class="hint">小さめ・シャープな形ほど加速がするどい</div></div>
         <div class="tstat"><div class="k"><span>⛽ ねんぴ</span><span class="grade" id="gFuel">B</span></div><div class="bar"><div class="fill" id="fFuel" style="background:linear-gradient(90deg,#7cc97f,var(--green))"></div></div><div class="hint">円形度（まるさ）が高いほど燃料が長もち</div></div>
-        <div class="tstat"><div class="k"><span>🦘 はねる力</span><span class="grade" id="gHop">C</span></div><div class="bar"><div class="fill" id="fHop" style="background:linear-gradient(90deg,var(--magenta),#b03ad6)"></div></div><div class="hint">凹凸・カドが多いほど障害物を自動でポン！</div></div>
+        <div class="tstat"><div class="k"><span>💥 とくしゅ（岩砕き・穴渡り・跳ね）</span><span class="grade" id="gHop">C</span></div><div class="bar"><div class="fill" id="fHop" style="background:linear-gradient(90deg,var(--magenta),#b03ad6)"></div></div><div class="hint">トゲは岩を砕く／広い面は穴をわたる／凹凸は障害物をポン！ 道のゾーンで有利が変わる</div></div>
         <canvas id="previewCv"></canvas>
       </div>
     </div>
@@ -565,6 +571,7 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
       <div id="rMedalLabel">銅メダル！</div>
     </div>
     <p id="rTireLine">タイヤ：<em>まるタイヤ</em></p>
+    <p id="rTrait" style="text-align:center;font-size:12.5px;font-weight:900;color:var(--magenta);margin:-6px 0 10px"></p>
     <div class="stats">
       <div class="stat"><div class="k">最高速度</div><div class="v"><span id="rSpeed">0</span><small> km/h</small></div></div>
       <div class="stat"><div class="k">最大コンボ</div><div class="v">×<span id="rCombo">0</span></div></div>
@@ -730,7 +737,23 @@ function computeMeta(pts){
     const d1=Math.hypot(v1x,v1y),d2=Math.hypot(v2x,v2y);
     if(d1>1e-5&&d2>1e-5){const dot=clamp((v1x*v2x+v1y*v2y)/(d1*d2),-1,1);if(Math.acos(dot)>0.42)corners++;}
   }
-  return{meanR:mean,stdR:sd,circ,supVar,corners:Math.min(corners,30),valveIdx:vi,valveAng0:Math.atan2(pts[vi][1],pts[vi][0])*180/Math.PI};
+  // --- direct profile metrics (v2): shape is NOT averaged away ---
+  let rMin=1e9,rMax=-1;for(let i=0;i<rs.length;i++){rMin=Math.min(rMin,rs[i]);rMax=Math.max(rMax,rs[i]);}
+  let roughSum=0;for(let i=0;i<rs.length;i++){roughSum+=Math.abs(rs[(i+1)%rs.length]-rs[i]);}
+  const rough=roughSum/rs.length/Math.max(0.2,mean);
+  let spikes=0;
+  for(let i=0;i<rs.length;i++){
+    const r0=rs[i],rp=rs[(i+rs.length-1)%rs.length],rn=rs[(i+1)%rs.length];
+    if(r0>=rp&&r0>=rn&&r0>mean+sd*0.45&&(r0-Math.min(rp,rn))>0.07)spikes++;
+  }
+  const spikeScore=clamp(Math.min(spikes,6)/5,0,1)*clamp((rMax-rMin)/0.42,0,1);
+  // longest run of (near-)max support = a broad/flat contact face
+  const sups=[];for(let a=0;a<360;a+=5)sups.push(supportAt(pts,a));
+  const supMax=Math.max.apply(null,sups),supMin=Math.min.apply(null,sups);
+  let flatRun=0,run=0;for(let k=0;k<144;k++){if(sups[k%72]>=supMax*0.93){run++;flatRun=Math.max(flatRun,run);}else run=0;}
+  const flatFrac=clamp(flatRun/72,0,1);
+  return{meanR:mean,stdR:sd,circ,supVar,corners:Math.min(corners,30),valveIdx:vi,valveAng0:Math.atan2(pts[vi][1],pts[vi][0])*180/Math.PI,
+    rMin,rMax,rough,spikes,spikeScore,flatFrac,supMin,supMax};
 }
 function buildShape(raw,smooth){
   if(!raw||raw.length<8)return null;
@@ -762,9 +785,27 @@ function buildShape(raw,smooth){
 function tireStats(shape,s){
   const m=shape.meta;
   const size=clamp((m.meanR*s-0.5)/0.8,0,1);
-  const round=clamp(m.circ*0.75+(1-clamp(m.supVar*2,0,1))*0.25,0,1);
-  const bump=clamp(m.supVar*2.0+m.stdR*2.2+m.corners*0.012,0,1);
-  return{size,round,bump,meanR:m.meanR,circ:m.circ,vmax:118+size*50,accel:1.22-size*0.42,fuelM:1.18-round*0.36};
+  const round=clamp(m.circ*0.45+(1-clamp(m.supVar*1.6,0,1))*0.55,0,1);
+  const spike=clamp(m.spikeScore||0,0,1);
+  const rough=clamp((m.rough||0)*5.5,0,1);
+  const bridge=clamp(Math.max(size*0.85,m.flatFrac||0),0,1);
+  const bump=clamp((m.supVar*2.0+m.stdR*2.2+m.corners*0.012)*0.8+spike*0.35,0,1);
+  return{size,round,bump,spike,rough,bridge,flatFrac:m.flatFrac||0,meanR:m.meanR,circ:m.circ,
+    vmax:108+size*72+round*14,
+    accel:clamp(0.74+(1-size)*0.5+spike*0.32,0.74,1.56),
+    fuelM:clamp(1.38-round*0.66-(m.flatFrac||0)*0.06,0.72,1.38)};
+}
+function traitName(ts){
+  // the shape's strongest route to a long run, in plain words
+  const T=ts||TS;
+  const cands=[
+    [T.round,"⛽ 燃費：まんまるで長く転がる"],
+    [T.spike,"🔨 岩砕き：トゲで岩を砕いて進む"],
+    [T.bridge,"🌉 穴渡り：広い面で穴をわたる"],
+    [clamp((T.accel-0.74)/0.82,0,1),"⚡ 加速：軽くてタップが効く"],
+    [T.bump,"🦘 跳ね：でこぼこで障害物をポン"]
+  ].sort((a,b)=>b[0]-a[0]);
+  return cands[0][1];
 }
 function circleRaw(cx,cy,r,n){const a=[];for(let i=0;i<n;i++){const t=i/n*Math.PI*2;a.push([cx+Math.cos(t)*r,cy+Math.sin(t)*r]);}return a;}
 let tire;
@@ -803,7 +844,8 @@ function updateTitleTire(){
   $("logoTire").innerHTML=tireSVG(tire,tire.s,60);
   $("titleTire").innerHTML=tireSVG(tire,tire.s,58);
   $("tireName").textContent=tire.label;
-  const defs=[["速",TS.size,C.red],["加",clamp((TS.accel-0.8)/0.42,0,1),C.blue],["燃",TS.round,C.green],["跳",TS.bump,C.magenta]];
+  const defs=[["速",TS.size,C.red],["加",clamp((TS.accel-0.74)/0.82,0,1),C.blue],["燃",TS.round,C.green],["特",Math.max(TS.bump,TS.spike,TS.bridge),C.magenta]];
+  $("traitLine").textContent="勝ち筋："+traitName();
   $("miniStats").innerHTML=defs.map(d=>'<span class="mini-stat">'+d[0]+'<b style="background:'+d[2]+'">'+grade(d[1])+'</b></span>').join("");
 }
 
@@ -962,7 +1004,7 @@ let bestAtStart=0,recordPassed=false,nextMile=500;
 let lastTap=-9,lastSimNow=0,now=0,t=0,titleScroll=0;
 let tapPulse=0,carPulse=0,comboPop=0,missTilt=0,shake=0,warnT=0;
 let puffT=0,dustT=0;
-let h=0,jv=0,jumpCd=0,invuln=0,rideSmooth=26;
+let h=0,jv=0,jumpCd=0,invuln=0,rideSmooth=26,prevSup=-1,lastZone=-1,supAcc=0,supSample=-1;
 let obsCursor=0;const hitStates=new Map();
 let jumpAlert=false,lastJumpCls="";
 let rulerMax=2600,rulerMarks=[];
@@ -1004,7 +1046,9 @@ function buildRuler(){
 function layoutRuler(){rulerMarks.forEach(m=>{m.el.style.left=clamp(m.m/rulerMax*100,0,100)+"%";});}
 
 /* ================= obstacles ================= */
-const OBS_TYPES={rock:{th:0.5,vm:0.45,fl:10,txt:"ガタン!!"},cone:{th:0.28,vm:0.68,fl:5,txt:"コツン!"},hole:{th:0.78,vm:0.55,fl:8,txt:"ドスン!"}};
+const OBS_TYPES={rock:{th:0.5,vm:0.4,fl:14,txt:"ガタン!!"},cone:{th:0.28,vm:0.68,fl:5,txt:"コツン!"},hole:{th:0.78,vm:0.55,fl:8,txt:"ドスン!"}};
+const ZONES=["平地","ガタガタ道","穴ぼこ道"];
+const zoneAt=m=>Math.floor(m/650)%3;
 function obsAt(i){
   const r=mulberry(i*97+13);
   const m=160+i*58+r()*26;
@@ -1013,7 +1057,12 @@ function obsAt(i){
   const q=r();
   let type;
   if(i<4){type=q<0.4?"cone":q<0.7?"boost":"ramp";}
-  else{type=q<0.12?"ramp":q<0.26?"boost":q<0.52?"cone":q<0.78?"rock":"hole";}
+  else{
+    const z=zoneAt(m);
+    if(z===0){type=q<0.10?"ramp":q<0.30?"boost":q<0.62?"cone":q<0.82?"rock":"hole";}
+    else if(z===1){type=q<0.10?"ramp":q<0.20?"boost":q<0.36?"cone":q<0.80?"rock":"hole";}
+    else{type=q<0.14?"ramp":q<0.24?"boost":q<0.38?"cone":q<0.56?"rock":"hole";}
+  }
   return{m,type};
 }
 function isHazard(tp){return tp==="rock"||tp==="cone"||tp==="hole";}
@@ -1037,6 +1086,22 @@ function resolveObs(o,i){
   const P=OBS_TYPES[o.type];
   if(h>18){stats.dodged++;addText("よけた!",C.green,22);SFX.dodge();hs("clear");return;}
   if(invuln>0){hs("clear");return;}
+  // --- trait routes: different shapes beat different hazards ---
+  if(o.type==="rock"&&TS.spike>=0.42){
+    v*=0.97;stats.dodged++;invuln=0.3;
+    addText("砕いた!",C.orange,28);SFX.hop();hs("hop");
+    spawnConfetti(carScr.x,carScr.y-40,8);
+    return;
+  }
+  if(o.type==="hole"&&TS.bridge>=0.55){
+    stats.dodged++;addText("わたった!",C.green,26);SFX.dodge();hs("clear");
+    return;
+  }
+  if(o.type==="cone"&&TS.round>=0.65){
+    v*=0.94;stats.dodged++;invuln=0.25;
+    addText("スルッ!",C.blue,24);SFX.dodge();hs("hop");
+    return;
+  }
   if(TS.bump>=P.th){
     jv=380;h=Math.max(h,1);v*=0.92;stats.dodged++;invuln=0.35;
     addText("ポン!",C.magenta,26);SFX.hop();hs("hop");
@@ -1077,6 +1142,7 @@ function startRun(){
   lastTap=-9;warnT=0;puffT=0;dustT=0;
   h=0;jv=0;jumpCd=0;invuln=0;
   rideSmooth=Math.max(0.22,supportAt(tire.pts,shapeRot()))*wheelR();
+  prevSup=-1;lastZone=-1;supAcc=0;supSample=-1;
   obsCursor=0;hitStates.clear();jumpAlert=false;lastJumpCls="";
   puffs.length=0;dust.length=0;confetti.length=0;texts.length=0;skids.length=0;bursts.length=0;
   tapPulse=0;carPulse=0;comboPop=0;missTilt=0;shake=0;
@@ -1135,7 +1201,8 @@ function finishRun(){
     '<circle cx="60" cy="76" r="24" fill="none" stroke="'+md.c2+'" stroke-width="3" stroke-dasharray="7 5"/>'+
     '<text x="60" y="87" text-anchor="middle" font-size="28" font-family="Yomogi,cursive" fill="'+C.ink+'">'+md.k+'</text></svg>';
   $("rMedalLabel").textContent=md.label;
-  $("rTireLine").innerHTML="タイヤ：<em>"+tire.label+"</em>（速"+grade(TS.size)+" 加"+grade(clamp((TS.accel-0.8)/0.42,0,1))+" 燃"+grade(TS.round)+" 跳"+grade(TS.bump)+"）";
+  $("rTireLine").innerHTML="タイヤ：<em>"+tire.label+"</em>（速"+grade(TS.size)+" 加"+grade(clamp((TS.accel-0.74)/0.82,0,1))+" 燃"+grade(TS.round)+" 特"+grade(Math.max(TS.bump,TS.spike,TS.bridge))+"）";
+  $("rTrait").textContent="このタイヤの勝ち筋："+traitName();
   $("rSpeed").textContent=Math.round(stats.maxV);
   $("rCombo").textContent=stats.maxCombo;
   $("rPerfect").textContent=stats.perfect;
@@ -1163,20 +1230,26 @@ function tap(){
   lastTap=pn;
   const a=(needleDeg+omega()*clamp((pn-lastSimNow)/1000,0,0.05))%360;
   const d=Math.abs(((a+90+180)%360+360)%360-180);
+  // contact factor: a long face under the axle grips, a dent slips.
+  const supNow=supportAt(tire.pts,(a-tire.meta.valveAng0+360)%360);
+  const supSpanRaw=(tire.meta.supMax||1)-(tire.meta.supMin||0);
+  const supSpan=Math.max(0.05,supSpanRaw);
+  const contactRatio=supSpanRaw<0.08?0.5:clamp((supNow-(tire.meta.supMin||0))/supSpan,0,1);
+  const camM=0.78+0.55*contactRatio;
   const z=zoneWidths();
   stats.taps++;tapPulse=1;
   if(d<=z.pw){
     combo++;stats.perfect++;stats.maxCombo=Math.max(stats.maxCombo,combo);
-    const boost=(13+Math.min(12,combo*0.6))*(fever?1.25:1)*TS.accel;
+    const boost=(13+Math.min(12,combo*0.6))*(fever?1.25:1)*TS.accel*camM;
     v=Math.min(TS.vmax,v+boost);fuel=Math.min(100,fuel+6);
     carPulse=1;comboPop=1;shake=Math.max(shake,2.5);
-    addText("PERFECT!!",C.red,30);
+    addText(contactRatio>0.78?"接地PERFECT!!":"PERFECT!!",C.red,30);
     bursts.push({age:0,color:C.red,ang:a});
     SFX.perfect(combo);
     if(combo>=8&&!fever){fever=true;showBanner("FEVER!!","fever",1.5);SFX.fever();spawnConfetti(carScr.x,carScr.y-130*carScr.s,40);}
   }else if(d<=z.gw){
     stats.good++;
-    v=Math.min(TS.vmax,v+6*(fever?1.15:1)*TS.accel);fuel=Math.min(100,fuel+2.5);
+    v=Math.min(TS.vmax,v+6*(fever?1.15:1)*TS.accel*camM);fuel=Math.min(100,fuel+2.5);
     carPulse=Math.max(carPulse,0.5);
     addText("GOOD!",C.blue,24);
     bursts.push({age:0,color:C.blue,ang:a});
@@ -1235,7 +1308,11 @@ function sim(dt){
   if(state==="running"&&!paused){
     lastSimNow=performance.now();
     needleDeg=(needleDeg+omega()*dt)%360;
-    const fr=(3.2+v*0.055)*(dist<150?0.8:1)*(coasting?1.4:1);
+    // direct profile physics: roughness drags every metre, roundness saves fuel,
+    // and a falling support radius (a dent rotating under the axle) costs speed.
+    let roughDrag=h>0?0:(TS.rough*3.4+(1-TS.round)*1.1)*(0.35+v/110);
+    if(zoneAt(dist)===1&&TS.spike>=0.42)roughDrag*=0.45;
+    const fr=(3.2+v*0.055)*(dist<150?0.8:1)*(coasting?1.4:1)+roughDrag;
     v=Math.max(0,v-fr*dt);
     dist+=v/3.6*dt;
     stats.maxV=Math.max(stats.maxV,v);
@@ -1246,6 +1323,20 @@ function sim(dt){
     }
     const cr=Math.max(0.22,supportAt(tire.pts,shapeRot()))*R;
     rideSmooth=lerp(rideSmooth,cr,clamp(dt*12,0,1));
+    if(h<=0){
+      // sampled impact: check the support radius every 15 degrees of rotation;
+      // a sharp drop there is one landing, not a per-frame tax.
+      const supN=cr/R;
+      supAcc+=omega()*dt;
+      if(supAcc>=15){
+        if(supSample>0){
+          const drop=supSample-supN;
+          if(drop>0.03){v=Math.max(0,v-drop*v*0.10*(1-TS.bump*0.5));if(drop>0.2&&TS.bump>=0.5&&jumpCd<=0){jv=Math.max(jv,240);h=Math.max(h,1);jumpCd=0.6;}}
+        }
+        supSample=supN;supAcc=0;
+      }
+      prevSup=supN;
+    }else{prevSup=-1;supSample=-1;supAcc=0;}
     stepObstacles();
     if(!coasting){
       fuel-=(2.0+v*0.03)*D.drain*TS.fuelM*(fever?0.7:1)*(h>0?0.6:1)*dt;
@@ -1314,6 +1405,8 @@ function updateHUD(){
   const bucket=pct<25?"low":pct<55?"mid":"";
   if(bucket!==lastFuelBucket){fuelFill.className="gauge-fill"+(bucket?" "+bucket:"");lastFuelBucket=bucket;}
   rulerCar.style.left=clamp(dist/rulerMax*100,0,100)+"%";
+  const z=zoneAt(dist);
+  if(z!==lastZone){lastZone=z;const ze=$("zoneVal");if(ze)ze.textContent=ZONES[z];}
 }
 
 /* ================= world rendering ================= */
@@ -1787,8 +1880,8 @@ function closeEditor(save,run){
 function presetRaw(name){
   const c=es/2,R=es*0.36,a=[];
   if(name==="maru")return circleRaw(c,c,R,96);
-  if(name==="shikaku"){const k=R*0.82;return[[c-k,c-k],[c+k,c-k],[c+k,c+k],[c-k,c+k]];}
-  if(name==="sankaku"){const k=R*0.95;return[[c,c-k],[c+k*0.9,c+k*0.7],[c-k*0.9,c+k*0.7]];}
+  if(name==="shikaku"){const k=R*0.82,cs=[[c-k,c-k],[c+k,c-k],[c+k,c+k],[c-k,c+k]],a=[];for(let e=0;e<4;e++){const A=cs[e],B=cs[(e+1)%4];for(let j=0;j<24;j++)a.push([A[0]+(B[0]-A[0])*j/24,A[1]+(B[1]-A[1])*j/24]);}return a;}
+  if(name==="sankaku"){const k=R*0.95,cs=[[c,c-k],[c+k*0.9,c+k*0.7],[c-k*0.9,c+k*0.7]],a=[];for(let e=0;e<3;e++){const A=cs[e],B=cs[(e+1)%3];for(let j=0;j<32;j++)a.push([A[0]+(B[0]-A[0])*j/32,A[1]+(B[1]-A[1])*j/32]);}return a;}
   if(name==="giza"){for(let i=0;i<24;i++){const t=i/24*Math.PI*2,rr=i%2?R*0.5:R; a.push([c+Math.cos(t)*rr,c+Math.sin(t)*rr]);}return a;}
   if(name==="heart"){for(let i=0;i<120;i++){const t=i/120*Math.PI*2;
     const x=16*Math.pow(Math.sin(t),3),y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
@@ -1841,14 +1934,17 @@ function updateEdStats(){
     edDirty=false;return;
   }
   const st=tireStats(editShape,editS);
-  const rows=[["Speed",st.size],["Accel",clamp((st.accel-0.8)/0.42,0,1)],["Fuel",st.round],["Hop",st.bump]];
+  const rows=[["Speed",st.size],["Accel",clamp((st.accel-0.74)/0.82,0,1)],["Fuel",st.round],["Hop",Math.max(st.bump,st.spike,st.bridge)]];
   rows.forEach(r=>{$("f"+r[0]).style.width=Math.round(r[1]*100)+"%";$("g"+r[0]).textContent=grade(r[1]);});
   const m=editShape.meta;
   $("edReadout").innerHTML=
     '<span class="ro-chip">円形度 <b>'+Math.round(m.circ*100)+'%</b></span>'+
     '<span class="ro-chip">カド <b>'+m.corners+'</b></span>'+
     '<span class="ro-chip">中心 <b>自動</b> ('+Math.round(m.cx)+','+Math.round(m.cy)+')</span>'+
-    '<span class="ro-chip">最大速 <b>'+Math.round(st.vmax)+'</b>km/h</span>';
+    '<span class="ro-chip">最大速 <b>'+Math.round(st.vmax)+'</b>km/h</span>'+
+    '<span class="ro-chip">トゲ <b>'+Math.round(st.spike*100)+'%</b></span>'+
+    '<span class="ro-chip">穴渡り <b>'+Math.round(st.bridge*100)+'%</b></span>'+
+    '<span class="ro-chip">勝ち筋 <b>'+traitName(st)+'</b></span>';
   edDirty=false;
 }
 function renderEditor(){
@@ -1996,6 +2092,7 @@ jumpBtn.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation(
 
 /* ================= UI wiring ================= */
 $("goBtn").addEventListener("click",()=>{initAudio();resumeAudio();SFX.click();startRun();});
+$("moreBtn").addEventListener("click",()=>{const mp=$("morePanel");const open=mp.classList.toggle("hidden");$("moreBtn").textContent=open?"🏆 ランキング・遊び方 ▾":"🏆 ランキング・遊び方 ▴";SFX.click();});
 $("rkNameBtn").addEventListener("click",()=>{const n=prompt("ランキングに表示される名前（12文字まで）",rkName||"");if(n!==null){if(rkSetName(n))showToast("名前を「"+rkName+"」にしたよ");else showToast("名前を入れてね");}});
 $("againBtn").addEventListener("click",()=>{initAudio();resumeAudio();SFX.click();startRun();});
 $("retryBtn").addEventListener("click",()=>{SFX.click();startRun();});
