@@ -248,19 +248,18 @@ h2{font-family:Yomogi,cursive;font-weight:400;font-size:clamp(25px,6vw,34px);tex
 h2 .u{background:linear-gradient(transparent 62%,rgba(127,179,232,.55) 62%)}
 
 /* ---------- tire editor ---------- */
-#editor .card{width:min(720px,100%)}
+#editor .card{width:min(900px,100%)}
 .ed-lead{text-align:center;font-size:12.5px;font-weight:700;color:var(--ink-soft);line-height:1.65;margin-bottom:12px}
 .ed-lead b{color:var(--red)}
-.ed-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px;align-items:start}
+.ed-grid{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
 .ed-left{min-width:0}
 #tireCv{
-  width:100%;aspect-ratio:1/1;display:block;border:3px solid var(--ink);border-radius:var(--sketch-r);
+  width:100%;max-width:600px;margin:0 auto;aspect-ratio:1/1;display:block;border:3px solid var(--ink);border-radius:var(--sketch-r);
   background:var(--paper2);touch-action:none;cursor:crosshair;box-shadow:3px 4px 0 rgba(51,41,31,.15);
 }
 #edReadout{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px}
 .ro-chip{font-size:10.5px;font-weight:900;color:var(--ink-soft);border:2px solid var(--ink-soft);border-radius:9px 12px 10px 13px/12px 9px 13px 10px;padding:3px 9px;background:var(--paper)}
 .ro-chip b{color:var(--blue);font-family:Yomogi,cursive;font-weight:400;font-size:13px}
-.ed-presets{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:9px}
 .ed-sliders{margin-top:10px;border:2.5px solid var(--ink);border-radius:var(--sketch-r);background:var(--paper);padding:9px 12px;display:flex;flex-direction:column;gap:7px}
 .sl-row{display:flex;align-items:center;gap:9px}
 .sl-row label{font-size:11.5px;font-weight:900;width:74px;flex:none}
@@ -272,7 +271,8 @@ input[type=range]::-moz-range-track{height:11px;border:2.5px solid var(--ink);bo
 input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;background:var(--yellow);border:2.5px solid var(--ink);box-shadow:2px 2px 0 rgba(51,41,31,.25);cursor:grab}
 .ed-tools{display:flex;gap:8px;margin-top:8px}
 .ed-tools .btn{flex:1}
-.ed-right{min-width:0;display:flex;flex-direction:column;gap:9px}
+.ed-right{min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ed-right #previewCv{grid-column:1/-1}
 .tstat{border:2.5px solid var(--ink);border-radius:var(--sketch-r);background:var(--paper);padding:7px 10px}
 .tstat:nth-child(odd){transform:rotate(-.5deg)}.tstat:nth-child(even){transform:rotate(.5deg)}
 .tstat .k{font-size:11px;font-weight:900;display:flex;justify-content:space-between;align-items:center}
@@ -334,8 +334,8 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
 @keyframes toastIn{0%{transform:translateX(-50%) translateY(16px);opacity:0}100%{transform:translateX(-50%) rotate(-1deg);opacity:1}}
 
 @media (max-width:660px){
-  .ed-grid{grid-template-columns:1fr}
-  #tireCv{max-width:330px;margin:0 auto}
+  .ed-right{grid-template-columns:1fr}
+  #tireCv{max-width:100%}
 }
 @media (max-width:560px){
   #hud{padding-right:96px;gap:6px}
@@ -501,16 +501,6 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
       <div class="ed-left">
         <canvas id="tireCv"></canvas>
         <div id="edReadout"></div>
-        <div class="ed-presets">
-          <button class="chip mini" data-preset="maru">まる</button>
-          <button class="chip mini" data-preset="shikaku">しかく</button>
-          <button class="chip mini" data-preset="sankaku">さんかく</button>
-          <button class="chip mini" data-preset="giza">ギザギザ</button>
-          <button class="chip mini" data-preset="heart">ハート</button>
-          <button class="chip mini" data-preset="onigiri">おにぎり</button>
-          <button class="chip mini" data-preset="banana">バナナ</button>
-          <button class="chip mini" data-preset="deko">でこぼこ</button>
-        </div>
         <div class="ed-sliders">
           <div class="sl-row"><label for="sizeRange">大きさ</label><input type="range" id="sizeRange" min="0.7" max="1.3" step="0.01" value="1"><span class="sl-val" id="sizeVal">×1.00</span></div>
           <div class="sl-row"><label for="smoothRange">なめらかさ</label><input type="range" id="smoothRange" min="0" max="0.6" step="0.01" value="0.12"><span class="sl-val" id="smoothVal">12%</span></div>
@@ -1877,30 +1867,6 @@ function closeEditor(save,run){
   else if(save)goTitle();
   else setOverlay(editorReturn);
 }
-function presetRaw(name){
-  const c=es/2,R=es*0.36,a=[];
-  if(name==="maru")return circleRaw(c,c,R,96);
-  if(name==="shikaku"){const k=R*0.82,cs=[[c-k,c-k],[c+k,c-k],[c+k,c+k],[c-k,c+k]],a=[];for(let e=0;e<4;e++){const A=cs[e],B=cs[(e+1)%4];for(let j=0;j<24;j++)a.push([A[0]+(B[0]-A[0])*j/24,A[1]+(B[1]-A[1])*j/24]);}return a;}
-  if(name==="sankaku"){const k=R*0.95,cs=[[c,c-k],[c+k*0.9,c+k*0.7],[c-k*0.9,c+k*0.7]],a=[];for(let e=0;e<3;e++){const A=cs[e],B=cs[(e+1)%3];for(let j=0;j<32;j++)a.push([A[0]+(B[0]-A[0])*j/32,A[1]+(B[1]-A[1])*j/32]);}return a;}
-  if(name==="giza"){for(let i=0;i<24;i++){const t=i/24*Math.PI*2,rr=i%2?R*0.5:R; a.push([c+Math.cos(t)*rr,c+Math.sin(t)*rr]);}return a;}
-  if(name==="heart"){for(let i=0;i<120;i++){const t=i/120*Math.PI*2;
-    const x=16*Math.pow(Math.sin(t),3),y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
-    a.push([c+x/17*R,c-y/17*R]);}return a;}
-  if(name==="onigiri"){for(let i=0;i<110;i++){const t=i/110*Math.PI*2;const rr=R*(0.78+0.2*Math.cos(3*t-Math.PI/2));a.push([c+Math.cos(t)*rr,c+Math.sin(t)*rr]);}return a;}
-  if(name==="banana"){
-    for(let i=0;i<=60;i++){const t=rad(-150+300*i/60);a.push([c+Math.cos(t)*R,c+Math.sin(t)*R]);}
-    for(let i=60;i>=0;i--){const t=rad(-150+300*i/60);a.push([c+R*0.42+Math.cos(t)*R*0.72,c+Math.sin(t)*R*0.72]);}
-    return a;}
-  if(name==="deko"){for(let i=0;i<96;i++){const t=i/96*Math.PI*2,rr=R*(0.55+hash(i*7+3)*0.45);a.push([c+Math.cos(t)*rr,c+Math.sin(t)*rr]);}return a;}
-  return circleRaw(c,c,R,96);
-}
-function setPreset(name){
-  pushHistory();
-  edRaw=presetRaw(name);
-  editShape=buildShape(edRaw,editSmooth);
-  editLabel={maru:"まるタイヤ",shikaku:"しかくタイヤ",sankaku:"さんかくタイヤ",giza:"ギザギザタイヤ",heart:"ハートタイヤ",onigiri:"おにぎりタイヤ",banana:"バナナタイヤ",deko:"でこぼこタイヤ"}[name];
-  hasDrawn=true;edDirty=true;SFX.click();
-}
 function edPoint(ev){const r=tireCv.getBoundingClientRect();return[ev.clientX-r.left,ev.clientY-r.top];}
 tireCv.addEventListener("pointerdown",ev=>{
   if(!ev.isPrimary)return;
@@ -1947,11 +1913,42 @@ function updateEdStats(){
     '<span class="ro-chip">勝ち筋 <b>'+traitName(st)+'</b></span>';
   edDirty=false;
 }
+function drawCarGhost(g,cx,cy,R){
+  // faint car silhouette so the tire's size/position against the car is obvious
+  g.save();
+  g.globalAlpha=0.10;g.fillStyle=C.ink;
+  const by=cy+R*0.55,hx=Math.sqrt(Math.max(0,Math.pow(R*1.08,2)-Math.pow(R*0.55,2)));
+  const a0=Math.atan2(R*0.55,hx),a1=Math.atan2(R*0.55,-hx);
+  g.beginPath();
+  g.moveTo(cx-R*2.35,by);
+  g.lineTo(cx-R*2.35,cy-R*0.05);
+  g.quadraticCurveTo(cx-R*2.3,cy-R*0.32,cx-R*1.95,cy-R*0.36);
+  g.lineTo(cx-R*1.25,cy-R*0.42);
+  g.lineTo(cx-R*0.82,cy-R*0.86);
+  g.quadraticCurveTo(cx-R*0.72,cy-R*0.98,cx-R*0.5,cy-R*0.98);
+  g.lineTo(cx+R*0.55,cy-R*0.98);
+  g.quadraticCurveTo(cx+R*0.8,cy-R*0.96,cx+R*0.95,cy-R*0.8);
+  g.lineTo(cx+R*1.45,cy-R*0.4);
+  g.lineTo(cx+R*2.1,cy-R*0.3);
+  g.quadraticCurveTo(cx+R*2.38,cy-R*0.26,cx+R*2.38,cy+R*0.02);
+  g.lineTo(cx+R*2.38,by);
+  g.lineTo(cx+hx,by);
+  g.arc(cx,cy,R*1.08,a0,a1,true);
+  g.lineTo(cx-R*2.35,by);
+  g.closePath();g.fill();
+  // ground line + standard-size guide circle
+  g.globalAlpha=0.16;g.strokeStyle=C.ink;g.lineWidth=2;
+  g.beginPath();g.moveTo(cx-R*2.5,cy+R);g.lineTo(cx+R*2.5,cy+R);g.stroke();
+  g.globalAlpha=0.13;g.setLineDash([6,6]);g.lineWidth=1.6;
+  g.beginPath();g.arc(cx,cy,R,0,7);g.stroke();g.setLineDash([]);
+  g.restore();
+}
 function renderEditor(){
-  if(edDirty){editShape=buildShape(edRaw,editSmooth);updateEdStats();}
+  if(edDirty&&!drawing){editShape=buildShape(edRaw,editSmooth);updateEdStats();}
   const c=es/2;
   ectx.clearRect(0,0,es,es);
   ectx.fillStyle=C.paper2;ectx.fillRect(0,0,es,es);
+  drawCarGhost(ectx,c,c,editShape?editShape.meta.scale:es*0.36);
   ectx.strokeStyle="rgba(47,111,228,0.08)";ectx.lineWidth=1;
   for(let g=28;g<es;g+=28){ectx.beginPath();ectx.moveTo(g,0);ectx.lineTo(g,es);ectx.moveTo(0,g);ectx.lineTo(es,g);ectx.stroke();}
   ectx.fillStyle="rgba(107,93,77,0.5)";ectx.font="700 10px 'Zen Maru Gothic', sans-serif";ectx.textAlign="left";
@@ -2112,7 +2109,6 @@ $("undoBtn").addEventListener("click",()=>{
   $("undoBtn").disabled=edHistory.length===0;
 });
 $("clearBtn").addEventListener("click",()=>{pushHistory();edRaw=[];editShape=null;hasDrawn=false;editLabel="カスタムタイヤ";edDirty=true;SFX.click();});
-document.querySelectorAll("[data-preset]").forEach(ch=>ch.addEventListener("click",()=>setPreset(ch.dataset.preset)));
 document.querySelectorAll(".chip[data-diff]").forEach(ch=>{
   ch.addEventListener("click",()=>{
     initAudio();resumeAudio();SFX.click();
