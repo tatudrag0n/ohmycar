@@ -434,13 +434,14 @@ input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;bac
       自己ベスト <b id="bestVal">—</b>
     </div>
 
-    <button id="moreBtn" class="btn ghost small" style="display:block;margin:0 auto 12px">🏆 ランキング・遊び方 ▾</button>
-    <div id="morePanel" class="hidden">
     <div class="rank-panel">
-      <h3>🏆 ランキング</h3>
+      <h3>🏆 ランキング TOP10</h3>
       <div class="rank-name-row">ランキング名：<b id="rkNameDisp">未設定</b><button id="rkNameBtn" type="button">変更</button></div>
       <ol id="rankList"><li class="rank-empty" style="border:none">読み込み中…</li></ol>
     </div>
+
+    <button id="moreBtn" class="btn ghost small" style="display:block;margin:0 auto 12px">📖 遊び方・難易度 ▾</button>
+    <div id="morePanel" class="hidden">
 
     <div class="chips" role="radiogroup" aria-label="難易度">
       <button class="chip" data-diff="easy" role="radio">のんびり</button>
@@ -989,6 +990,7 @@ function engineUpdate(v,on){
 let state="title";
 let paused=false,editorOpen=false,editorReturn="title";
 let dist=0,v=0,fuel=100,needleDeg=90,combo=0,fever=false,feverBlend=0;
+let crossedRanks=new Set();
 let coasting=false,coastT=0,overDelay=0;
 let cd=0,lastCd=4;
 let stats={maxV:0,maxCombo:0,perfect:0,good:0,miss:0,taps:0,dodged:0,crashes:0,jumps:0};
@@ -1041,8 +1043,8 @@ function layoutRuler(){rulerMarks.forEach(m=>{m.el.style.left=clamp(m.m/rulerMax
 const OBS_TYPES={rock:{th:0.5,vm:0.4,fl:14,txt:"ガタン!!"},cone:{th:0.28,vm:0.68,fl:5,txt:"コツン!"},hole:{th:0.78,vm:0.55,fl:8,txt:"ドスン!"}};
 const ZONES=["平地","ガタガタ道","穴ぼこ道"];
 /* terrain: endless small hills (px, up is positive) + its slope (px per metre) */
-function hillH(m){return 15*Math.sin(m*0.045+0.3)+9*Math.sin(m*0.0135+1.7)+5*Math.sin(m*0.105+0.5);}
-function hillSlope(m){return 15*0.045*Math.cos(m*0.045+0.3)+9*0.0135*Math.cos(m*0.0135+1.7)+5*0.105*Math.cos(m*0.105+0.5);}
+function hillH(m){return 26*Math.sin(m*0.045+0.3)+15*Math.sin(m*0.0135+1.7)+8*Math.sin(m*0.105+0.5);}
+function hillSlope(m){return 26*0.045*Math.cos(m*0.045+0.3)+15*0.0135*Math.cos(m*0.0135+1.7)+8*0.105*Math.cos(m*0.105+0.5);}
 const groundBaseY=()=>H*0.74+H*0.10*0.55;
 const groundYAt=m=>groundBaseY()-hillH(m);
 const distNow=()=>state==="title"?titleScroll:dist;
@@ -1136,7 +1138,7 @@ function startRun(){
   dist=0;v=14;fuel=100;needleDeg=90;combo=0;fever=false;feverBlend=0;
   coasting=false;coastT=0;overDelay=0;paused=false;
   stats={maxV:0,maxCombo:0,perfect:0,good:0,miss:0,taps:0,dodged:0,crashes:0,jumps:0};
-  bestAtStart=best;recordPassed=false;nextMile=500;
+  bestAtStart=best;crossedRanks=new Set();recordPassed=false;nextMile=500;
   lastTap=-9;warnT=0;puffT=0;dustT=0;
   h=0;jv=0;jumpCd=0;invuln=0;
   rideSmooth=supportAvg(tire,shapeRot())*wheelR();
@@ -1318,7 +1320,11 @@ function sim(dt){
     if(zoneAt(dist)===1&&TS.spike>=0.42)roughDrag*=0.45;
     const fr=(3.2+v*0.055)*(dist<150?0.8:1)*(coasting?1.4:1)+roughDrag;
     v=Math.max(0,v-fr*dt);
+    const prevDist=dist;
     dist+=v/3.6*dt;
+    if(rkRecords)rkRecords.slice(0,10).forEach((v2,i)=>{
+      if(!crossedRanks.has(i)&&prevDist<v2.best&&dist>=v2.best){crossedRanks.add(i);addText("🏆 "+(i+1)+"位ライン突破!",i<3?C.yellow:C.blue,24);}
+    });
     stats.maxV=Math.max(stats.maxV,v);
     jumpCd=Math.max(0,jumpCd-dt);invuln=Math.max(0,invuln-dt);
     if(h>0||jv>0){
@@ -1557,6 +1563,23 @@ function drawRoad(wx){
     ctx.fillStyle=C.ink;ctx.font="400 12px Yomogi, cursive";ctx.textAlign="left";ctx.fillText(f[2],8,-53);
     ctx.restore();
   });
+  if(rkRecords&&rkRecords.length&&state!=="title"){
+    const cols=[C.yellow,"#c0c8d4","#d08a4e"];
+    rkRecords.slice(0,10).forEach((v,i)=>{
+      const x=carScr.x+(v.best-dist)*ppm;
+      if(x<-90||x>W+90)return;
+      const gy=groundYAt(v.best);
+      ctx.save();ctx.translate(x,gy);
+      ctx.strokeStyle=i<3?cols[i]:C.ink;ctx.lineWidth=i<3?3.4:2.4;
+      ctx.setLineDash([7,6]);sLine(0,4,0,-118,i*31+7,1);ctx.setLineDash([]);
+      sPolyPath([[0,-118],[52,-110],[0,-100]],i*31+8,1.2);fillStroke(i<3?cols[i]:C.paper2,C.ink,2);
+      ctx.fillStyle=C.ink;ctx.font="400 11px Yomogi, cursive";ctx.textAlign="left";ctx.textBaseline="middle";
+      ctx.fillText((i+1)+"位",5,-109);
+      ctx.font="700 10px 'Zen Maru Gothic', sans-serif";
+      const nm=String(v.name);ctx.fillText(nm.length>6?nm.slice(0,6)+"…":nm,2,-88);
+      ctx.restore();
+    });
+  }
   if(bestAtStart>50){
     const x=carScr.x+(bestAtStart-dist)*ppm;
     if(x>-90&&x<W+90){
@@ -2124,8 +2147,8 @@ jumpBtn.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation(
 
 /* ================= UI wiring ================= */
 $("goBtn").addEventListener("click",()=>{initAudio();resumeAudio();SFX.click();startRun();});
-$("moreBtn").addEventListener("click",()=>{const mp=$("morePanel");const open=mp.classList.toggle("hidden");$("moreBtn").textContent=open?"🏆 ランキング・遊び方 ▾":"🏆 ランキング・遊び方 ▴";SFX.click();});
-$("rkNameBtn").addEventListener("click",()=>{const n=prompt("ランキングに表示される名前（12文字まで）",rkName||"");if(n!==null){if(rkSetName(n))showToast("名前を「"+rkName+"」にしたよ");else showToast("名前を入れてね");}});
+$("moreBtn").addEventListener("click",()=>{const mp=$("morePanel");const open=mp.classList.toggle("hidden");$("moreBtn").textContent=open?"📖 遊び方・難易度 ▾":"📖 遊び方・難易度 ▴";SFX.click();});
+$("rkNameBtn").addEventListener("click",()=>{const n=prompt("ランキングに表示される名前（12文字まで）",rkName||"");if(n!==null){if(rkSetName(n))showToast("名前を「"+rkName+"」にしたよ");else showToast(rkNameErr==="ng"?"その名前は使えません":"名前を入れてね");}});
 $("againBtn").addEventListener("click",()=>{initAudio();resumeAudio();SFX.click();startRun();});
 $("retryBtn").addEventListener("click",()=>{SFX.click();startRun();});
 $("resumeBtn").addEventListener("click",doResume);
@@ -2183,7 +2206,7 @@ async function rkFetch(action,args){
 async function rkLoad(){
   try{
     const j=await rkFetch("records.list");
-    rkRecords=((j.data&&j.data.records)||[]).map(r=>r.value).filter(v=>v&&typeof v.best==="number"&&typeof v.name==="string").sort((a,b)=>b.best-a.best);
+    rkRecords=((j.data&&j.data.records)||[]).map(r=>r.value).filter(v=>v&&typeof v.best==="number"&&typeof v.name==="string"&&!rkIsBannedName(v.name)).sort((a,b)=>b.best-a.best);
   }catch(e){rkRecords=null;}
   rkRenderTitle();
 }
@@ -2197,9 +2220,15 @@ function rkRenderTitle(){
     return '<li'+(rkName&&v.name===rkName?' class="me"':"")+'><span class="rk-pos">'+pos+'</span><span class="rk-name">'+rkEsc(v.name)+'</span><span class="rk-dist">'+fmt(v.best)+' m</span></li>';
   }).join("");
 }
+const BANNED_NAME_WORDS=["ちんこ","ちんぽ","まんこ","おっぱい","セックス","えろ","オナニー","ペニス","うんこ","うんち","くそ","ばか","バカ","馬鹿","あほ","アホ","きちがい","きもい","死ね","しね","殺す","ころす","くたばれ","運営","公式","管理者","管理人","運営者","admin","staff","スタッフ","fuck","shit","bitch","dick","pussy","cock","sex","porn"];
+function rkNormName(t){return String(t).normalize("NFKC").replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)).toLowerCase().replace(/\s+/g,"");}
+function rkIsBannedName(t){const n=rkNormName(t);return !!n&&BANNED_NAME_WORDS.some(w=>n.includes(rkNormName(w)));}
+let rkNameErr=null;
 function rkSetName(n){
   n=String(n||"").replace(/[<>&"'`\\]/g,"").replace(/\s+/g," ").trim().slice(0,12);
-  if(!n)return false;
+  if(!n){rkNameErr="empty";return false;}
+  if(rkIsBannedName(n)){rkNameErr="ng";return false;}
+  rkNameErr=null;
   rkName=n;LS.set("rk_name",n);rkRenderTitle();return true;
 }
 async function rkSubmit(d,rankChar){
@@ -2218,7 +2247,7 @@ async function rkOnFinish(d,rankChar){
     rkPending={d,rankChar};
     box.innerHTML='<div>🏆 ランキングに登録しよう！</div><div class="rk-form"><input id="rkNameInput" maxlength="12" placeholder="名前（12文字まで）"><button id="rkRegBtn" class="btn blue small" type="button">登録する</button></div>';
     $("rkRegBtn").addEventListener("click",async()=>{
-      if(!rkSetName($("rkNameInput").value)){showToast("名前を入れてね");return;}
+      if(!rkSetName($("rkNameInput").value)){showToast(rkNameErr==="ng"?"その名前は使えません":"名前を入れてね");return;}
       const pd=rkPending;rkPending=null;
       box.innerHTML="🏆 ランキングに登録中…";
       const pos=await rkSubmit(pd.d,pd.rankChar);
