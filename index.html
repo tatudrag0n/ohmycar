@@ -1857,11 +1857,13 @@ let edHistory=[],edDirty=true,es=300,edpr=1,pw=300,ph=96;
 let drawing=false,pencilT=0,hasDrawn=false,applyDrawnSize=false;
 function sizeEditor(){
   const r1=tireCv.getBoundingClientRect();
-  es=Math.max(220,r1.width);edpr=Math.min(2,window.devicePixelRatio||1);
+  const newEs=Math.max(220,r1.width-6);
+  if(edRaw.length&&Math.abs(newEs-es)>0.5){const k=newEs/es;edRaw=edRaw.map(pt=>[pt[0]*k,pt[1]*k]);edDirty=true;}
+  es=newEs;edpr=Math.min(2,window.devicePixelRatio||1);
   tireCv.width=Math.round(es*edpr);tireCv.height=Math.round(es*edpr);
   ectx.setTransform(edpr,0,0,edpr,0,0);ectx.lineJoin="round";ectx.lineCap="round";
   const r2=previewCv.getBoundingClientRect();
-  pw=Math.max(220,r2.width);ph=96;
+  pw=Math.max(220,r2.width-6);ph=Math.max(60,r2.height-6);
   previewCv.width=Math.round(pw*edpr);previewCv.height=Math.round(ph*edpr);
   pctx.setTransform(edpr,0,0,edpr,0,0);pctx.lineJoin="round";pctx.lineCap="round";
 }
@@ -1893,7 +1895,7 @@ function closeEditor(save,run){
   else if(save)goTitle();
   else setOverlay(editorReturn);
 }
-function edPoint(ev){const r=tireCv.getBoundingClientRect();return[ev.clientX-r.left,ev.clientY-r.top];}
+function edPoint(ev){const r=tireCv.getBoundingClientRect();return[(ev.clientX-r.left-3)*es/Math.max(1,r.width-6),(ev.clientY-r.top-3)*es/Math.max(1,r.height-6)];}
 tireCv.addEventListener("pointerdown",ev=>{
   if(!ev.isPrimary)return;
   ev.preventDefault();initAudio();resumeAudio();
