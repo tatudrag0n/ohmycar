@@ -811,6 +811,8 @@ let tire;
 })();
 let TS=tireStats(tire,tire.s);
 const wheelR=()=>26*tire.s;
+const WHEEL_OFFSET=60;
+const supportAvg=(shape,rotDeg)=>Math.max(0.22,(supportAt(shape.pts,rotDeg)+supportAt(shape.pts,rotDeg+WHEEL_OFFSET))/2);
 const shapeRot=()=>needleDeg-tire.meta.valveAng0;
 const grade=v=>v>=0.8?"S":v>=0.6?"A":v>=0.4?"B":"C";
 function tireSVG(shape,s,size){
@@ -1131,7 +1133,7 @@ function startRun(){
   bestAtStart=best;recordPassed=false;nextMile=500;
   lastTap=-9;warnT=0;puffT=0;dustT=0;
   h=0;jv=0;jumpCd=0;invuln=0;
-  rideSmooth=Math.max(0.22,supportAt(tire.pts,shapeRot()))*wheelR();
+  rideSmooth=supportAvg(tire,shapeRot())*wheelR();
   prevSup=-1;lastZone=-1;supAcc=0;supSample=-1;
   obsCursor=0;hitStates.clear();jumpAlert=false;lastJumpCls="";
   puffs.length=0;dust.length=0;confetti.length=0;texts.length=0;skids.length=0;bursts.length=0;
@@ -1221,7 +1223,7 @@ function tap(){
   const a=(needleDeg+omega()*clamp((pn-lastSimNow)/1000,0,0.05))%360;
   const d=Math.abs(((a+90+180)%360+360)%360-180);
   // contact factor: a long face under the axle grips, a dent slips.
-  const supNow=supportAt(tire.pts,(a-tire.meta.valveAng0+360)%360);
+  const supNow=supportAvg(tire,(a-tire.meta.valveAng0+360)%360);
   const supSpanRaw=(tire.meta.supMax||1)-(tire.meta.supMin||0);
   const supSpan=Math.max(0.05,supSpanRaw);
   const contactRatio=supSpanRaw<0.08?0.5:clamp((supNow-(tire.meta.supMin||0))/supSpan,0,1);
@@ -1284,12 +1286,12 @@ function sim(dt){
   const R=wheelR();
   if(state==="title"||state==="over"){
     if(state==="title"){titleScroll+=16/3.6*dt;needleDeg=(needleDeg+80*dt)%360;}
-    const cr=Math.max(0.22,supportAt(tire.pts,shapeRot()))*R;
+    const cr=supportAvg(tire,shapeRot())*R;
     rideSmooth=lerp(rideSmooth,cr,clamp(dt*12,0,1));
   }
   if(state==="countdown"){
     needleDeg=(needleDeg+omega()*dt)%360;
-    const cr=Math.max(0.22,supportAt(tire.pts,shapeRot()))*R;
+    const cr=supportAvg(tire,shapeRot())*R;
     rideSmooth=lerp(rideSmooth,cr,clamp(dt*12,0,1));
     cd-=dt;const n=Math.ceil(cd);
     if(n!==lastCd&&n>0){lastCd=n;popCount(String(n));SFX.count();}
@@ -1311,7 +1313,7 @@ function sim(dt){
       h+=jv*dt;jv-=1500*dt;
       if(h<=0){h=0;if(jv<-220){SFX.land();for(let i=0;i<5;i++)dust.push({x:carScr.x+(n1(i*5)*44)*carScr.s,y:carScr.y-2,vx:n1(i*11)*70-40,vy:-30-Math.random()*40,r:2+Math.random()*2,age:0,life:0.45,seed:i*13});}jv=0;}
     }
-    const cr=Math.max(0.22,supportAt(tire.pts,shapeRot()))*R;
+    const cr=supportAvg(tire,shapeRot())*R;
     rideSmooth=lerp(rideSmooth,cr,clamp(dt*12,0,1));
     if(h<=0){
       // sampled impact: check the support radius every 15 degrees of rotation;
@@ -1656,7 +1658,9 @@ function drawCar(){
   const x=W*0.30,s=cs;
   const R=wheelR();
   const rot=shapeRot();
-  const contact=Math.max(0.22,supportAt(tire.pts,rot))*R;
+  const contact=supportAvg(tire,rot)*R;
+  const contactF=Math.max(0.22,supportAt(tire.pts,rot))*R;
+  const contactR=Math.max(0.22,supportAt(tire.pts,rot+WHEEL_OFFSET))*R;
   const bodyDy=clamp(26-rideSmooth,-12,12);
   const bob=Math.sin(t*11)*1.0*clamp(v/60,0,1);
   carScr={x,y:gy,s};
@@ -1666,8 +1670,8 @@ function drawCar(){
   ctx.save();ctx.translate(x,gy-h*s+bob);
   ctx.rotate(missTilt>0?0.07*(missTilt/0.35):0);
   ctx.scale(s*k*(1+carPulse*0.06),s*k*(1-carPulse*0.08));
-  drawFreeWheel(-46,-contact/k,R/k,rot,401,tire);
-  drawFreeWheel(46,-contact/k,R/k,rot,402,tire);
+  drawFreeWheel(-46,-contactR/k,R/k,rot+WHEEL_OFFSET,401,tire);
+  drawFreeWheel(46,-contactF/k,R/k,rot,402,tire);
   ctx.save();ctx.translate(0,bodyDy);
   sPolyPath([[-84,-30],[-88,-50],[-64,-57],[-38,-60],[-16,-60],[10,-58],[44,-53],[74,-46],[86,-36],[84,-28]],410,1.7);
   fillStroke("rgba(229,67,46,0.93)",C.ink,3);
@@ -2040,11 +2044,11 @@ function renderEditor(){
     pctx.beginPath();pctx.ellipse(cx,gy+2,50,4,0,0,7);pctx.fill();
     [-24,24].forEach((dx,k)=>{
       const wx=cx+dx,wy=gy-sup;
-      const a=rad(roll),ca=Math.cos(a),sa=Math.sin(a);
+      const a=rad(roll+(k===0?WHEEL_OFFSET:0)),ca=Math.cos(a),sa=Math.sin(a);
       traceSmoothClosed(pctx,editShape.pts.map(p=>[wx+(p[0]*ca-p[1]*sa)*wr,wy+(p[0]*sa+p[1]*ca)*wr]));
       pctx.fillStyle=C.ink;pctx.fill();
       pctx.beginPath();pctx.arc(wx,wy,wr*0.26,0,7);pctx.fillStyle=C.paper2;pctx.fill();pctx.strokeStyle=C.ink;pctx.lineWidth=1.8;pctx.stroke();
-      const va=rad(roll+editShape.meta.valveAng0),vrr=wr*0.9;
+      const va=rad(roll+(k===0?WHEEL_OFFSET:0)+editShape.meta.valveAng0),vrr=wr*0.9;
       pctx.beginPath();pctx.arc(wx+Math.cos(va)*vrr,wy+Math.sin(va)*vrr,2.6,0,7);pctx.fillStyle=C.yellow;pctx.fill();
     });
     const plankY=axleY-12;
